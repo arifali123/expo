@@ -165,7 +165,6 @@ class ClipboardPasteButton: ExpoView {
     switch imageOptions.imageFormat {
     case .jpeg: return image.jpegData(compressionQuality: imageOptions.jpegQuality)
     case .png: return image.pngData()
-    case .gif: return image.gifData()
     }
   }
 }

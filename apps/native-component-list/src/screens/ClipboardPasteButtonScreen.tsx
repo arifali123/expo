@@ -22,7 +22,7 @@ export default function ClipboardPasteButtonScreen() {
     <ScrollView>
       <View style={styles.screen}>
         <ClipboardPasteButton
-          imageOptions={{ format: 'gif' }}
+          imageOptions={{ format: 'png' }}
           onPress={(data) => {
             if (data.type === 'image') {
               setImageData(data);
