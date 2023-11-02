@@ -129,9 +129,7 @@ describe(`DevToolsPluginClient (browser <> app)`, () => {
       pluginName,
     });
 
-    await delayAsync(100);
-    expect(browserClient.isConnected()).toBe(false);
-    expect(browserClient2.isConnected()).toBe(true);
+    await waitUntilAsync(() => !browserClient.isConnected() && browserClient2.isConnected());
     expect(() => browserClient.sendMessage(method, { from: 'browserClient' })).toThrow();
     browserClient2.sendMessage(method, { from: 'browserClient2' });
 
@@ -141,6 +139,18 @@ describe(`DevToolsPluginClient (browser <> app)`, () => {
   });
 });
 
-async function delayAsync(timeMs: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, timeMs));
+function waitUntilAsync(fn: () => boolean, timeoutMs = 5000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const startTime = Date.now();
+    function check() {
+      if (fn()) {
+        resolve();
+      } else if (Date.now() - startTime > timeoutMs) {
+        reject(new Error('Timed out'));
+      } else {
+        setTimeout(check, 100);
+      }
+    }
+    check();
+  });
 }
