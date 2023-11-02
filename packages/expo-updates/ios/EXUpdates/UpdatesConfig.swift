@@ -71,10 +71,9 @@ public final class UpdatesConfig: NSObject {
 
   private static let ReleaseChannelDefaultValue = "default"
 
-  public let isEnabled: Bool
   public let expectsSignedManifest: Bool
-  public let scopeKey: String?
-  public let updateUrl: URL?
+  public let scopeKey: String
+  public let updateUrl: URL
   public let requestHeaders: [String: String]
   public let releaseChannel: String
   public let launchWaitMs: Int
@@ -90,10 +89,9 @@ public final class UpdatesConfig: NSObject {
   public let hasEmbeddedUpdate: Bool
 
   internal required init(
-    isEnabled: Bool,
     expectsSignedManifest: Bool,
-    scopeKey: String?,
-    updateUrl: URL?,
+    scopeKey: String,
+    updateUrl: URL,
     requestHeaders: [String: String],
     releaseChannel: String,
     launchWaitMs: Int,
@@ -104,7 +102,6 @@ public final class UpdatesConfig: NSObject {
     hasEmbeddedUpdate: Bool,
     enableExpoUpdatesProtocolV0CompatibilityMode: Bool
   ) {
-    self.isEnabled = isEnabled
     self.expectsSignedManifest = expectsSignedManifest
     self.scopeKey = scopeKey
     self.updateUrl = updateUrl
@@ -119,8 +116,31 @@ public final class UpdatesConfig: NSObject {
     self.enableExpoUpdatesProtocolV0CompatibilityMode = enableExpoUpdatesProtocolV0CompatibilityMode
   }
 
-  public func isMissingRuntimeVersion() -> Bool {
-    return (runtimeVersion?.isEmpty ?? true) && (sdkVersion?.isEmpty ?? true)
+  public static func canCreateValidConfiguration(mergingOtherDictionary: [String: Any]?) -> Bool {
+    // TODO(wschurman): move common code into methods
+    guard let configPath = Bundle.main.path(forResource: PlistName, ofType: "plist"),
+      let configNSDictionary = NSDictionary(contentsOfFile: configPath) as? [String: Any] else {
+      return false
+    }
+
+    var dictionary: [String: Any] = configNSDictionary
+    if let mergingOtherDictionary = mergingOtherDictionary {
+      dictionary = dictionary.merging(mergingOtherDictionary, uniquingKeysWith: { _, new in new })
+    }
+
+    guard let isEnabled = (dictionary.optionalValue(forKey: EXUpdatesConfigEnabledKey) ?? true) else {
+      return false
+    }
+
+    let updateUrl: URL? = dictionary.optionalValue(forKey: EXUpdatesConfigUpdateUrlKey).let { it in
+      URL(string: it)
+    }
+
+    guard let updateUrl = updateUrl else {
+      return false
+    }
+
+    return true
   }
 
   public static func configWithExpoPlist(mergingOtherDictionary: [String: Any]?) throws -> UpdatesConfig {
@@ -210,7 +230,6 @@ public final class UpdatesConfig: NSObject {
     let enableExpoUpdatesProtocolV0CompatibilityMode = config.optionalValue(forKey: EXUpdatesConfigEnableExpoUpdatesProtocolV0CompatibilityModeKey) ?? false
 
     return UpdatesConfig(
-      isEnabled: isEnabled,
       expectsSignedManifest: expectsSignedManifest,
       scopeKey: scopeKey,
       updateUrl: updateUrl,
